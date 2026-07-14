@@ -1,18 +1,14 @@
 'use client'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Check, Copy } from 'lucide-react'
 import { saveCard } from '@/lib/mock-store'
 import { getTemplate } from '@/lib/templates'
 import { OCCASION_META } from '@/lib/occasions'
-import { getCopilotFeed, getCopilotReply } from '@/lib/copilot'
-import { MOMENT_TYPES } from '@/lib/moment-types'
 import { readDraft, writeDraft, clearDraft } from '@/lib/draft-store'
-import type { DraftResult } from '@/lib/copilot-draft'
 import type { Scene, OccasionType, PrivacyMode } from '@/lib/types'
 import { BuilderHeader } from './BuilderHeader'
-import { BuilderCanvas } from './BuilderCanvas'
-import { CreateStep } from './CreateStep'
+import { SenderWizard } from './wizard/SenderWizard'
 import { PrivacySettingsModal } from './PrivacySettingsModal'
 import { LetterPages } from '@/components/reveal/LetterPages'
 import { useHistory } from './canvas/useHistory'
@@ -21,26 +17,11 @@ interface BuilderShellProps {
   initialOccasion: OccasionType
 }
 
-function newSceneFromMomentType(momentTypeId: string, accentFrom: string, accentTo: string): Scene {
-  const momentType = MOMENT_TYPES.find(m => m.id === momentTypeId) ?? MOMENT_TYPES[0]
-  return {
-    id: crypto.randomUUID(),
-    layout: momentType.layout,
-    interaction: momentType.interaction,
-    transition: 'fade',
-    durationMs: 4000,
-    heading: '',
-    body: '',
-    background: { from: accentFrom, to: accentTo },
-  }
-}
-
 const sceneFingerprint = (scenes: Scene[]) =>
   JSON.stringify(scenes.map(s => ({ layout: s.layout, heading: s.heading, body: s.body, imageUrl: s.imageUrl })))
 
 export function BuilderShell({ initialOccasion }: BuilderShellProps) {
   const router = useRouter()
-  const [step, setStep] = useState<'create' | 'edit'>('create')
   const [occasion, setOccasion] = useState<OccasionType>(initialOccasion)
   const meta = OCCASION_META[occasion]
   const template = getTemplate(occasion)
@@ -52,7 +33,6 @@ export function BuilderShell({ initialOccasion }: BuilderShellProps) {
     () => template.scenes.map(s => ({ ...s, id: crypto.randomUUID() })),
   )
   const [musicTrackId, setMusicTrackId] = useState<string | null>(template.defaultMusicTrackId)
-  const [musicOpen, setMusicOpen] = useState(false)
   const [privacyMode, setPrivacyMode] = useState<PrivacyMode>('open')
   const [recipientEmail, setRecipientEmail] = useState('')
   const [passcodeEnabled, setPasscodeEnabled] = useState(false)
@@ -73,36 +53,25 @@ export function BuilderShell({ initialOccasion }: BuilderShellProps) {
   const removeScene = (id: string) =>
     setScenes(prev => (prev.length > 1 ? prev.filter(s => s.id !== id) : prev))
 
-  const duplicateScene = (id: string) =>
-    setScenes(prev => {
-      const idx = prev.findIndex(s => s.id === id)
-      if (idx === -1) return prev
-      const clone: Scene = { ...prev[idx], id: crypto.randomUUID() }
-      const next = [...prev]
-      next.splice(idx + 1, 0, clone)
-      return next
-    })
+  const addBlankScene = () =>
+    setScenes(prev => [...prev, {
+      id: crypto.randomUUID(),
+      layout: 'quote',
+      interaction: 'auto',
+      transition: 'fade',
+      durationMs: 4000,
+      body: '',
+      background: { from: meta.accentFrom, to: meta.accentTo },
+    }])
 
-  const trimStory = () =>
-    setScenes(prev => prev.map(s => ({ ...s, durationMs: Math.max(2000, Math.round(s.durationMs * 0.7)) })))
-
-  const addMoment = (momentTypeId: string) =>
-    setScenes(prev => [...prev, newSceneFromMomentType(momentTypeId, meta.accentFrom, meta.accentTo)])
-
-  const addMomentWithFile = async (momentTypeId: string, file: File, kind: 'image' | 'video') => {
-    const dataUrl = await readAsDataUrl(file)
-    const scene: Scene = {
-      ...newSceneFromMomentType(momentTypeId, meta.accentFrom, meta.accentTo),
-      ...(kind === 'image' ? { imageUrl: dataUrl } : { videoUrl: dataUrl }),
-    }
-    setScenes(prev => [...prev, scene])
-  }
+  const applyPalette = (from: string, to: string) =>
+    setScenes(prev => prev.map(s => ({ ...s, background: { from, to } })))
 
   const handleSelectOccasion = (next: OccasionType) => {
     if (next === occasion) return
     const isTemplateFresh = scenes.every(s => !s.interaction || s.interaction === 'auto') && sceneFingerprint(scenes) === sceneFingerprint(template.scenes)
-    if (!isTemplateFresh && step === 'edit') {
-      const proceed = window.confirm('Switching templates will replace your drafted moments — continue?')
+    if (!isTemplateFresh) {
+      const proceed = window.confirm('Switching occasions will replace your drafted scenes — continue?')
       if (!proceed) return
     }
     const nextTemplate = getTemplate(next)
@@ -124,58 +93,8 @@ export function BuilderShell({ initialOccasion }: BuilderShellProps) {
     updateScene(sceneId, { imageUrl: dataUrl })
   }
 
-  const handleMultiImageSelect = async (sceneId: string, files: File[]) => {
-    const dataUrls = await Promise.all(files.map(readAsDataUrl))
-    setScenes(prev => prev.map(s => (s.id === sceneId ? { ...s, imageUrls: [...(s.imageUrls ?? []), ...dataUrls] } : s)))
-  }
-
-  const handleVideoSelect = async (sceneId: string, file: File) => {
-    const dataUrl = await readAsDataUrl(file)
-    updateScene(sceneId, { videoUrl: dataUrl })
-  }
-
-  const handleDraft = (result: DraftResult, draftedRecipientName: string) => {
-    setTitle(result.title)
-    setScenes(result.scenes)
-    setMusicTrackId(result.musicTrackId)
-    if (draftedRecipientName) setRecipientName(draftedRecipientName)
-    setStep('edit')
-  }
-
-  const copilotSnapshot = {
-    occasion,
-    title,
-    templateName: template.name,
-    recipientName,
-    scenes,
-    musicTrackId,
-    privacyMode,
-    passcode: passcodeEnabled ? passcode : '',
-  }
-
-  const copilotEntries = useMemo(() => getCopilotFeed(
-    copilotSnapshot,
-    {
-      setTitle,
-      addScene: layout => addMoment(MOMENT_TYPES.find(m => m.layout === layout)?.id ?? MOMENT_TYPES[0].id),
-      patchScene: updateScene,
-      openMusic: () => setMusicOpen(true),
-      openPrivacy: () => setPrivacyOpen(true),
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  ), [occasion, title, template.name, recipientName, scenes, musicTrackId, privacyMode, passcode, passcodeEnabled])
-
-  const resolveCopilotReply = (message: string) => getCopilotReply(message, copilotSnapshot, {
-    addScene: layout => addMoment(MOMENT_TYPES.find(m => m.layout === layout)?.id ?? MOMENT_TYPES[0].id),
-    patchScene: updateScene,
-    trimStory,
-    openMusic: () => setMusicOpen(true),
-    openPrivacy: () => setPrivacyOpen(true),
-  })
-
   // Global undo/redo — skipped while typing so it doesn't fight native text-field undo.
   useEffect(() => {
-    if (step !== 'edit') return
     const handler = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement
       const typing = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable
@@ -186,7 +105,7 @@ export function BuilderShell({ initialOccasion }: BuilderShellProps) {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [step, undo, redo])
+  }, [undo, redo])
 
   // Restore an in-progress draft on mount (once) — refreshing mid-edit shouldn't lose work.
   useEffect(() => {
@@ -204,13 +123,12 @@ export function BuilderShell({ initialOccasion }: BuilderShellProps) {
     setRecipientEmail(draft.recipientEmail)
     setPasscodeEnabled(draft.passcodeEnabled)
     setPasscode(draft.passcode)
-    setStep('edit')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Debounced autosave of in-progress edits.
   useEffect(() => {
-    if (step !== 'edit' || shareUrl) return
+    if (shareUrl) return
     if (skipNextAutosaveRef.current) { skipNextAutosaveRef.current = false; return }
     setSaveStatus('saving')
     const t = setTimeout(() => {
@@ -219,11 +137,11 @@ export function BuilderShell({ initialOccasion }: BuilderShellProps) {
     }, 500)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, occasion, title, recipientName, senderName, scenes, musicTrackId, privacyMode, recipientEmail, passcodeEnabled, passcode])
+  }, [occasion, title, recipientName, senderName, scenes, musicTrackId, privacyMode, recipientEmail, passcodeEnabled, passcode])
 
   const handlePublish = () => {
     setError(null)
-    if (!title.trim()) return setError('Give this moment a name.')
+    if (!title.trim()) return setError('Give this letter a title.')
     if (privacyMode === 'email_gated' && !recipientEmail.trim()) return setError("Add the recipient's email to keep this private.")
     if (passcodeEnabled && !passcode.trim()) return setError('Set a passcode, or turn it off.')
 
@@ -322,8 +240,7 @@ export function BuilderShell({ initialOccasion }: BuilderShellProps) {
         meta={meta}
         title={title}
         onTitleChange={setTitle}
-        step={step}
-        saveStatus={step === 'edit' ? saveStatus : 'idle'}
+        saveStatus={saveStatus}
         canUndo={canUndo}
         canRedo={canRedo}
         onUndo={undo}
@@ -336,35 +253,30 @@ export function BuilderShell({ initialOccasion }: BuilderShellProps) {
 
       {error && <p className="text-sm text-danger px-4 pt-3">{error}</p>}
 
-      {step === 'create' ? (
-        <CreateStep occasion={occasion} onSelectOccasion={handleSelectOccasion} onDraft={handleDraft} />
-      ) : (
-        <div className="flex-1 min-h-0">
-          <BuilderCanvas
-            scenes={scenes}
-            onSceneChange={updateScene}
-            onSceneRemove={removeScene}
-            onSceneDuplicate={duplicateScene}
-            onAddMoment={addMoment}
-            onAddImageMoment={file => addMomentWithFile('photo-reveal', file, 'image')}
-            onAddVideoMoment={file => addMomentWithFile('video-message', file, 'video')}
-            onImageSelect={handleImageSelect}
-            onMultiImageSelect={handleMultiImageSelect}
-            onVideoSelect={handleVideoSelect}
-            occasion={occasion}
-            onSelectOccasion={handleSelectOccasion}
-            musicTrackId={musicTrackId}
-            onMusicChange={setMusicTrackId}
-            musicOpen={musicOpen}
-            onMusicOpenChange={setMusicOpen}
-            accentFrom={meta.accentFrom}
-            accentTo={meta.accentTo}
-            senderName={senderName}
-            copilotEntries={copilotEntries}
-            getCopilotReply={resolveCopilotReply}
-          />
-        </div>
-      )}
+      <SenderWizard
+        title={title}
+        onTitleChange={setTitle}
+        senderName={senderName}
+        onSenderNameChange={setSenderName}
+        recipientName={recipientName}
+        onRecipientNameChange={setRecipientName}
+        occasion={occasion}
+        onSelectOccasion={handleSelectOccasion}
+        scenes={scenes}
+        onSceneChange={updateScene}
+        onSceneRemove={removeScene}
+        onAddScene={addBlankScene}
+        onImageSelect={handleImageSelect}
+        onApplyPalette={applyPalette}
+        musicTrackId={musicTrackId}
+        onMusicChange={setMusicTrackId}
+        accentFrom={meta.accentFrom}
+        accentTo={meta.accentTo}
+        onOpenPrivacy={() => setPrivacyOpen(true)}
+        onPublish={handlePublish}
+        publishing={saving}
+        error={error}
+      />
     </div>
   )
 }
