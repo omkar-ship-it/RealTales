@@ -1,47 +1,47 @@
 import type { MusicTrack } from './types'
 
 /**
- * Placeholder music library. `fileUrl` paths point at /public/music/*, which
- * is NOT included in this repo — background music needs licensed tracks
- * (Epidemic Sound, Artlist, or a genuinely royalty-free source), not
- * arbitrary MP3s, since these cards get shared publicly. Drop real files at
- * these paths (or swap in your own URLs) before launch. See README.
+ * `fileUrl` paths point at real files in /public/music/*.wav — procedurally
+ * synthesized (numpy sine/harmonic synthesis, no samples or copyrighted
+ * material), not licensed recordings. Good enough for a design prototype to
+ * actually have sound during the reveal; swap in real licensed tracks
+ * (Epidemic Sound, Artlist, etc.) before any real launch. See README.
  */
 export const MUSIC_TRACKS: MusicTrack[] = [
   {
     id: 'gentle-piano',
     title: 'Gentle Piano',
-    artist: 'TBD — needs a licensed track',
-    fileUrl: '/music/gentle-piano.mp3',
-    durationSec: 60,
-    licenseNote: 'PLACEHOLDER — replace with a licensed track before launch',
+    artist: 'RealTales (synthesized)',
+    fileUrl: '/music/gentle-piano.wav',
+    durationSec: 16,
+    licenseNote: 'Procedurally generated placeholder audio — no license needed, but not production-quality',
     occasionTags: ['goodwill', 'anniversary', 'housewarming'],
   },
   {
     id: 'warm-strings',
     title: 'Warm Strings',
-    artist: 'TBD — needs a licensed track',
-    fileUrl: '/music/warm-strings.mp3',
-    durationSec: 60,
-    licenseNote: 'PLACEHOLDER — replace with a licensed track before launch',
+    artist: 'RealTales (synthesized)',
+    fileUrl: '/music/warm-strings.wav',
+    durationSec: 17,
+    licenseNote: 'Procedurally generated placeholder audio — no license needed, but not production-quality',
     occasionTags: ['wedding', 'anniversary'],
   },
   {
     id: 'upbeat-celebration',
     title: 'Upbeat Celebration',
-    artist: 'TBD — needs a licensed track',
-    fileUrl: '/music/upbeat-celebration.mp3',
-    durationSec: 60,
-    licenseNote: 'PLACEHOLDER — replace with a licensed track before launch',
+    artist: 'RealTales (synthesized)',
+    fileUrl: '/music/upbeat-celebration.wav',
+    durationSec: 12,
+    licenseNote: 'Procedurally generated placeholder audio — no license needed, but not production-quality',
     occasionTags: ['birthday', 'housewarming'],
   },
   {
     id: 'adventure-acoustic',
     title: 'Adventure Acoustic',
-    artist: 'TBD — needs a licensed track',
-    fileUrl: '/music/adventure-acoustic.mp3',
-    durationSec: 60,
-    licenseNote: 'PLACEHOLDER — replace with a licensed track before launch',
+    artist: 'RealTales (synthesized)',
+    fileUrl: '/music/adventure-acoustic.wav',
+    durationSec: 13,
+    licenseNote: 'Procedurally generated placeholder audio — no license needed, but not production-quality',
     occasionTags: ['trip'],
   },
 ]

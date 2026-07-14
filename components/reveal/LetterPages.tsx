@@ -1,6 +1,7 @@
 'use client'
-import { useRef, useState } from 'react'
-import { motion, useAnimation, type PanInfo } from 'framer-motion'
+import { useState } from 'react'
+import { motion, useAnimation } from 'framer-motion'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import type { Scene } from '@/lib/types'
 import { LetterPageContent } from './LetterPageContent'
 import { PageStack } from './PageStack'
@@ -16,22 +17,18 @@ interface LetterPagesProps {
   onComplete: () => void
 }
 
-const TURN_THRESHOLD = 90
-const VELOCITY_THRESHOLD = 500
-
 /**
  * Letter-reading engine: one page on screen at a time, read at your own pace
  * (natural scroll inside the page — see LetterPageContent), advanced by a
- * tactile drag-to-turn gesture rather than an auto-advancing timer. A single
- * persistent element is driven imperatively (useAnimation) rather than keyed
- * AnimatePresence, so the live drag-tilt preview and the committed turn
- * animation are always the same motion value — no handoff glitches.
+ * tap on the page edges — the page still animates as if it's turning, just
+ * without requiring a drag gesture to get there (dragging tested poorly).
+ * Edge zones are narrow so the center of the page stays free for scrolling
+ * to read long content.
  */
 export function LetterPages({ scenes, senderName, recipientName, accentFrom, accentTo, onComplete }: LetterPagesProps) {
   const [pageIndex, setPageIndex] = useState(-1) // -1 = title beat, 0..n-1 = paper pages
   const [busy, setBusy] = useState(false)
   const controls = useAnimation()
-  const dragStartX = useRef(0)
 
   const atStart = pageIndex <= -1
   const isTitle = pageIndex === -1
@@ -56,23 +53,6 @@ export function LetterPages({ scenes, senderName, recipientName, accentFrom, acc
     turnTo(pageIndex - 1, -1)
   }
 
-  const handleDrag = (_: unknown, info: PanInfo) => {
-    if (busy) return
-    const rotateY = Math.max(-28, Math.min(28, info.offset.x * -0.12))
-    controls.set({ x: info.offset.x, rotateY })
-  }
-
-  const handleDragEnd = (_: unknown, info: PanInfo) => {
-    if (busy) return
-    if (info.offset.x <= -TURN_THRESHOLD || info.velocity.x < -VELOCITY_THRESHOLD) {
-      goNext()
-    } else if (!atStart && (info.offset.x >= TURN_THRESHOLD || info.velocity.x > VELOCITY_THRESHOLD)) {
-      goBack()
-    } else {
-      controls.start({ x: 0, rotateY: 0, transition: { type: 'spring', stiffness: 300, damping: 26 } })
-    }
-  }
-
   return (
     <div className="fixed inset-0 bg-[#120E0A] overflow-hidden select-none">
       <div className="pointer-events-none absolute -left-32 top-0 w-[420px] h-[420px] rounded-full bg-[#7A4A2A] opacity-25 blur-[110px]" />
@@ -89,29 +69,39 @@ export function LetterPages({ scenes, senderName, recipientName, accentFrom, acc
       )}
 
       <div style={{ perspective: 1400 }} className="absolute inset-0 flex items-center justify-center px-6 py-24">
-        <motion.div
-          animate={controls}
-          initial={{ x: 0, rotateY: 0, opacity: 1 }}
-          drag="x"
-          dragConstraints={{ left: 0, right: 0 }}
-          dragElastic={1}
-          onDragStart={() => { dragStartX.current = 0 }}
-          onDrag={handleDrag}
-          onDragEnd={handleDragEnd}
-          className="relative w-full max-w-[420px] h-full max-h-[620px] cursor-grab active:cursor-grabbing"
-          style={{ transformStyle: 'preserve-3d' }}
-        >
-          {isTitle ? (
-            <TitleCard senderName={senderName} recipientName={recipientName} />
-          ) : (
-            <LetterPageContent scene={scenes[pageIndex]} index={pageIndex} total={scenes.length} accentFrom={accentFrom} accentTo={accentTo} />
-          )}
-        </motion.div>
-      </div>
+        <div className="relative w-full max-w-[420px] h-full max-h-[620px]">
+          <motion.div
+            animate={controls}
+            initial={{ x: 0, rotateY: 0, opacity: 1 }}
+            className="absolute inset-0"
+            style={{ transformStyle: 'preserve-3d' }}
+          >
+            {isTitle ? (
+              <TitleCard senderName={senderName} recipientName={recipientName} />
+            ) : (
+              <LetterPageContent scene={scenes[pageIndex]} index={pageIndex} total={scenes.length} accentFrom={accentFrom} accentTo={accentTo} />
+            )}
+          </motion.div>
 
-      {/* Tap-zone fallback for discoverability / accessibility */}
-      <button aria-label="Previous page" onClick={goBack} className="absolute left-0 top-0 bottom-24 w-1/6 z-10" />
-      <button aria-label="Next page" onClick={goNext} className="absolute right-0 top-0 bottom-24 w-1/6 z-10" />
+          {/* Edge tap zones — narrow, so the center stays free for scrolling to read */}
+          {!atStart && (
+            <button
+              aria-label="Previous page"
+              onClick={goBack}
+              className="absolute left-0 top-0 bottom-0 w-[18%] z-10 flex items-center justify-start pl-1.5 text-white/0 hover:text-white/25 transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          )}
+          <button
+            aria-label="Next page"
+            onClick={goNext}
+            className="absolute right-0 top-0 bottom-0 w-[18%] z-10 flex items-center justify-end pr-1.5 text-white/15 hover:text-white/35 transition-colors"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
 
       <div className="absolute bottom-6 inset-x-0 flex items-center justify-center z-20">
         <button
@@ -135,7 +125,7 @@ function TitleCard({ senderName, recipientName }: { senderName: string; recipien
       <p className="font-display italic text-4xl sm:text-5xl leading-tight bg-clip-text text-transparent" style={{ backgroundImage: 'linear-gradient(160deg, #F3D9A8 0%, #D9A441 100%)' }}>
         {recipientName || 'you'}
       </p>
-      <p className="text-xs text-white/40 mt-10">Drag to turn the page</p>
+      <p className="text-xs text-white/40 mt-10">Tap to turn the page</p>
     </div>
   )
 }

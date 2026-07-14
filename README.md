@@ -40,7 +40,7 @@ The pieces that are genuinely the product's design/UX — the scene engine, the 
 - **No accounts.** There's no sign-in; every card is attributed to a fixed demo sender.
 - **No real image hosting.** Uploaded photos are read as data URLs and stored inline in `localStorage`, not uploaded anywhere.
 - **No real privacy gate.** `EmailGate` faithfully reproduces the two-step "enter your email → enter the code" interaction, but it's checked client-side against the card's stored recipient email, and any 6-digit code passes the second step — there's no real OTP being emailed.
-- **No real background music.** `lib/music.ts` points at `/public/music/*.mp3`, which don't exist in this repo — add real (licensed) files there to hear it play.
+- **No licensed background music.** `lib/music.ts` points at real files in `/public/music/*.wav`, but they're procedurally synthesized (sine/harmonic synthesis, no samples or copyrighted material) so the reveal has actual sound — not licensed recordings. Swap in real licensed tracks before any real launch.
 - **No Open Graph preview image** for shared links, since that needs server-side rendering of per-card data.
 
 ## Turning this into the real product
