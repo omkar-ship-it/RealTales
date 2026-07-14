@@ -19,6 +19,7 @@
 
   --font-sans:    var(--font-jakarta);
   --font-display: var(--font-fraunces);
+  --font-hand:    var(--font-caveat);
 
   --radius-xl: 1.25rem;
   --radius-2xl: 1.5rem;
@@ -34,6 +35,20 @@ body {
 }
 
 .font-display { font-family: var(--font-display, 'Fraunces', serif); }
+.font-hand { font-family: var(--font-hand, 'Caveat', cursive); }
+
+/* Twinkling starfield used behind the dark reveal experience */
+@keyframes twinkle {
+  0%, 100% { opacity: 0.15; }
+  50%      { opacity: 0.9; }
+}
+.star-twinkle { animation: twinkle 3.2s ease-in-out infinite; }
+
+/* Subtle paper grain for letter pages */
+.paper-grain {
+  background-image: radial-gradient(rgba(43,33,64,0.035) 1px, transparent 1px);
+  background-size: 3px 3px;
+}
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 4px; height: 4px; }

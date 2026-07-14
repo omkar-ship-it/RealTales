@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
+import { Fraunces, Plus_Jakarta_Sans, Caveat } from "next/font/google";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -13,6 +13,15 @@ const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
 });
 
+// Handwritten feel for the letter body/signature in the reveal experience —
+// deliberately distinct from Fraunces (used for headings/quotes) so the
+// letter itself reads as "handwritten" against everything else's typeset feel.
+const caveat = Caveat({
+  variable: "--font-caveat",
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+});
+
 export const metadata: Metadata = {
   title: "RealTales — send letters, beautifully",
   description:
@@ -24,7 +33,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${fraunces.variable} ${jakarta.variable}`}>
+      <body className={`${fraunces.variable} ${jakarta.variable} ${caveat.variable}`}>
         {children}
       </body>
     </html>

@@ -79,7 +79,9 @@ export function CardPageClient({ slug }: { slug: string }) {
 
   return (
     <CardExperience
+      slug={slug}
       senderName={card.senderName}
+      recipientName={card.recipientName}
       occasion={card.occasion}
       scenes={card.scenes}
       musicTrackId={card.musicTrackId}

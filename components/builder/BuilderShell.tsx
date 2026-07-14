@@ -14,7 +14,7 @@ import { BuilderHeader } from './BuilderHeader'
 import { BuilderCanvas } from './BuilderCanvas'
 import { CreateStep } from './CreateStep'
 import { PrivacySettingsModal } from './PrivacySettingsModal'
-import { RevealPlayer } from '@/components/reveal/RevealPlayer'
+import { LetterPages } from '@/components/reveal/LetterPages'
 import { useHistory } from './canvas/useHistory'
 
 interface BuilderShellProps {
@@ -287,8 +287,10 @@ export function BuilderShell({ initialOccasion }: BuilderShellProps) {
     <div className="h-screen flex flex-col bg-bg">
       {previewOpen && (
         <div className="fixed inset-0 z-50">
-          <RevealPlayer
+          <LetterPages
             scenes={scenes}
+            senderName={senderName}
+            recipientName={recipientName}
             accentFrom={meta.accentFrom}
             accentTo={meta.accentTo}
             onComplete={() => setPreviewOpen(false)}
