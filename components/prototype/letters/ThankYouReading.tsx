@@ -1,37 +1,25 @@
 'use client'
-import { LetterPages } from '@/components/reveal/LetterPages'
-import type { Scene } from '@/lib/types'
+import { ScrollytellingReel, PeakLine, type ScrollySection } from '../ScrollytellingReel'
+import type { LabLetter } from '@/lib/prototypes/letters'
 
 interface ThankYouReadingProps {
-  senderName: string
-  recipientName: string
-  accentFrom: string
-  accentTo: string
+  letter: LabLetter
   onComplete: () => void
 }
 
-function scene(partial: Partial<Scene> & { id: string }): Scene {
-  return { layout: 'text-only', transition: 'fade', durationMs: 4000, ...partial }
-}
+/** Was the page-turn "control" the other prototypes got judged against; now
+ * genuinely runs the same unified scrollytelling engine as every other /lab
+ * letter — the quote is promoted to the letter's one pinned peak instead of
+ * being flat text like its neighbors. */
+export function ThankYouReading({ letter, onComplete }: ThankYouReadingProps) {
+  const { accentFrom, accentTo } = letter
 
-/** Control / baseline — today's live page-turn model, unmodified, so the
- * scrollytelling prototypes (Anniversary, Trip Memory) can be judged against
- * something familiar rather than against each other in a vacuum. */
-export function ThankYouReading({ senderName, recipientName, accentFrom, accentTo, onComplete }: ThankYouReadingProps) {
-  const scenes: Scene[] = [
-    scene({ id: 't1', heading: 'What you did mattered.', body: 'It would have been easy to look away. You didn’t.' }),
-    scene({ id: 't2', layout: 'quote', body: 'Some acts of kindness stay with people. This is one of them.' }),
-    scene({ id: 't3', heading: 'Thank you, truly.', body: 'From all of us who noticed, even if we didn’t say it at the time.' }),
+  const sections: ScrollySection[] = [
+    { id: 't1', kind: 'text', heading: 'What you did mattered.', body: 'It would have been easy to look away. You didn’t.' },
+    { id: 'photo', kind: 'photo', caption: 'The moment we mean when we say “thank you.”' },
+    { id: 'quote', kind: 'pinned-hero', render: () => <PeakLine line="Some acts of kindness stay with people. This is one of them." accentFrom={accentFrom} /> },
+    { id: 't3', kind: 'text', heading: 'Thank you, truly.', body: 'From all of us who noticed, even if we didn’t say it at the time.' },
   ]
 
-  return (
-    <LetterPages
-      scenes={scenes}
-      senderName={senderName}
-      recipientName={recipientName}
-      accentFrom={accentFrom}
-      accentTo={accentTo}
-      onComplete={onComplete}
-    />
-  )
+  return <ScrollytellingReel sections={sections} accentFrom={accentFrom} accentTo={accentTo} onComplete={onComplete} />
 }

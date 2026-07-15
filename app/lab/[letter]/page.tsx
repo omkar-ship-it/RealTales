@@ -1,7 +1,6 @@
 'use client'
 import { use, useRef, useState } from 'react'
 import Link from 'next/link'
-import dynamic from 'next/dynamic'
 import { getLabLetter, type LabLetter } from '@/lib/prototypes/letters'
 import { getMusicTrack } from '@/lib/music'
 import { LetterGate } from '@/components/reveal/LetterGate'
@@ -17,11 +16,7 @@ import { FriendReading } from '@/components/prototype/letters/FriendReading'
 import { TripReading } from '@/components/prototype/letters/TripReading'
 import { AppreciationReading } from '@/components/prototype/letters/AppreciationReading'
 
-// Lazy-loaded, never blocks the static gate's first paint — prefetches while the
-// recipient is still reading the gate and deciding whether to tap.
-const WebGLEnvelope = dynamic(() => import('@/components/prototype/WebGLEnvelope').then(m => m.WebGLEnvelope), { ssr: false })
-
-type Stage = 'gate' | 'opening' | 'reading' | 'closing' | 'ending'
+type Stage = 'gate' | 'reading' | 'closing' | 'ending'
 
 export default function LabLetterPage({ params }: { params: Promise<{ letter: string }> }) {
   const { letter: routeSlug } = use(params)
@@ -42,7 +37,7 @@ export default function LabLetterPage({ params }: { params: Promise<{ letter: st
   const track = getMusicTrack(letter.musicTrackId)
   const handleGateBegin = () => {
     audioRef.current?.play().catch(() => {}) // must be called synchronously from the tap handler for iOS
-    setStage(letter.gate === 'webgl' ? 'opening' : 'reading')
+    setStage('reading')
   }
   const handleWatchAgain = () => {
     audioRef.current?.play().catch(() => {})
@@ -61,10 +56,6 @@ export default function LabLetterPage({ params }: { params: Promise<{ letter: st
           accentTo={letter.accentTo}
           onBegin={handleGateBegin}
         />
-      )}
-
-      {stage === 'opening' && (
-        <WebGLEnvelope accentFrom={letter.accentFrom} accentTo={letter.accentTo} onComplete={() => setStage('reading')} />
       )}
 
       {stage === 'reading' && (
@@ -90,31 +81,23 @@ export default function LabLetterPage({ params }: { params: Promise<{ letter: st
 function ReadingFor({ letter, onComplete }: { letter: LabLetter; onComplete: () => void }) {
   switch (letter.slug) {
     case 'anniversary':
-      return <AnniversaryReading accentFrom={letter.accentFrom} accentTo={letter.accentTo} onComplete={onComplete} />
+      return <AnniversaryReading letter={letter} onComplete={onComplete} />
     case 'birthday':
-      return <BirthdayReading accentFrom={letter.accentFrom} accentTo={letter.accentTo} onComplete={onComplete} />
+      return <BirthdayReading letter={letter} onComplete={onComplete} />
     case 'wedding':
-      return <WeddingReading accentFrom={letter.accentFrom} accentTo={letter.accentTo} onComplete={onComplete} />
+      return <WeddingReading letter={letter} onComplete={onComplete} />
     case 'thankyou':
-      return (
-        <ThankYouReading
-          senderName={letter.senderName}
-          recipientName={letter.recipientName}
-          accentFrom={letter.accentFrom}
-          accentTo={letter.accentTo}
-          onComplete={onComplete}
-        />
-      )
+      return <ThankYouReading letter={letter} onComplete={onComplete} />
     case 'valentine':
-      return <ValentineReading senderName={letter.senderName} accentFrom={letter.accentFrom} accentTo={letter.accentTo} onComplete={onComplete} />
+      return <ValentineReading letter={letter} onComplete={onComplete} />
     case 'housewarming':
-      return <HousewarmingReading accentFrom={letter.accentFrom} accentTo={letter.accentTo} onComplete={onComplete} />
+      return <HousewarmingReading letter={letter} onComplete={onComplete} />
     case 'friend':
-      return <FriendReading senderName={letter.senderName} accentFrom={letter.accentFrom} accentTo={letter.accentTo} onComplete={onComplete} />
+      return <FriendReading letter={letter} onComplete={onComplete} />
     case 'trip':
-      return <TripReading accentFrom={letter.accentFrom} accentTo={letter.accentTo} onComplete={onComplete} />
+      return <TripReading letter={letter} onComplete={onComplete} />
     case 'appreciation':
-      return <AppreciationReading accentFrom={letter.accentFrom} accentTo={letter.accentTo} onComplete={onComplete} />
+      return <AppreciationReading letter={letter} onComplete={onComplete} />
     default:
       return null
   }

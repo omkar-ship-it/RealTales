@@ -1,37 +1,34 @@
 'use client'
-import { ScrollytellingReel, type ScrollySection } from '../ScrollytellingReel'
+import { ScrollytellingReel, PeakLine, type ScrollySection } from '../ScrollytellingReel'
+import type { LabLetter } from '@/lib/prototypes/letters'
 
 interface TripReadingProps {
-  accentFrom: string
-  accentTo: string
+  letter: LabLetter
   onComplete: () => void
 }
 
-const SECTIONS: ScrollySection[] = [
-  { id: 'depart', kind: 'text', eyebrow: 'Day 1', heading: 'Somewhere between the wrong turns and the good views', body: 'this became one for the books.' },
-  { id: 'photo1', kind: 'photo', caption: 'That sunrise none of us were awake enough to deserve.' },
-  { id: 'midtrip', kind: 'text', eyebrow: 'Day 3', heading: 'We got lost on purpose after that.', body: 'Best decision of the whole trip.' },
-  { id: 'photo2', kind: 'photo', caption: 'This one’s going straight to the group chat forever.' },
-  { id: 'end', kind: 'text', eyebrow: 'Home', heading: 'Every memory worth keeping, in one place.', body: 'Same time next year?' },
-]
+/** Scrollytelling's *other* primary use case — photo-heavy/parallax
+ * (journalism-style). The two solo photo beats are now one horizontal-scroll
+ * gallery (more photos, more texture), and the closing line is promoted to
+ * the letter's one pinned peak instead of scrolling past like everything else. */
+export function TripReading({ letter, onComplete }: TripReadingProps) {
+  const { accentFrom, accentTo } = letter
 
-/** Tests: scrollytelling's *other* primary use case — photo-heavy/parallax
- * (journalism-style), contrasting with Anniversary's text-timeline use of the
- * same engine. */
-export function TripReading({ accentFrom, accentTo, onComplete }: TripReadingProps) {
-  return (
-    <div className="min-h-screen bg-[#120E0A]">
-      <ScrollytellingReel sections={SECTIONS} accentFrom={accentFrom} accentTo={accentTo} />
-      <div className="flex justify-center pb-24">
-        <button
-          type="button"
-          onClick={onComplete}
-          className="px-6 py-3 rounded-full font-semibold text-sm text-[#2B2140]"
-          style={{ background: `linear-gradient(160deg, ${accentFrom} 0%, ${accentTo} 100%)` }}
-        >
-          Close the letter
-        </button>
-      </div>
-    </div>
-  )
+  const sections: ScrollySection[] = [
+    { id: 'depart', kind: 'text', eyebrow: 'Day 1', heading: 'Somewhere between the wrong turns and the good views', body: 'this became one for the books.' },
+    {
+      id: 'gallery',
+      kind: 'gallery',
+      items: [
+        { caption: 'That sunrise none of us were awake enough to deserve.' },
+        { caption: 'The wrong turn that became the best part of the trip.' },
+        { caption: 'This one’s going straight to the group chat forever.' },
+        { caption: 'Nobody believed we actually found this place.' },
+      ],
+    },
+    { id: 'midtrip', kind: 'text', eyebrow: 'Day 3', heading: 'We got lost on purpose after that.', body: 'Best decision of the whole trip.' },
+    { id: 'end', kind: 'pinned-hero', render: () => <PeakLine eyebrow="Home" line="Every memory worth keeping, in one place. Same time next year?" accentFrom={accentFrom} /> },
+  ]
+
+  return <ScrollytellingReel sections={sections} accentFrom={accentFrom} accentTo={accentTo} onComplete={onComplete} />
 }

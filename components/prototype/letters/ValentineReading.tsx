@@ -1,15 +1,13 @@
 'use client'
+import { ScrollytellingReel, type ScrollySection } from '../ScrollytellingReel'
 import { LetterPageContent } from '@/components/reveal/LetterPageContent'
-import { VoiceNotePage } from '../VoiceNotePage'
 import { HoldToReveal } from '../gestures/HoldToReveal'
-import { SimplePager } from '../SimplePager'
 import { useDeviceTilt } from '@/hooks/useDeviceTilt'
+import type { LabLetter } from '@/lib/prototypes/letters'
 import type { Scene } from '@/lib/types'
 
 interface ValentineReadingProps {
-  senderName: string
-  accentFrom: string
-  accentTo: string
+  letter: LabLetter
   onComplete: () => void
 }
 
@@ -17,30 +15,47 @@ function scene(partial: Partial<Scene> & { id: string }): Scene {
   return { layout: 'text-only', transition: 'fade', durationMs: 4000, ...partial }
 }
 
-/** Tests: the biggest WebGL swing at the gate (see the lab page) + gyroscope
- * parallax throughout + a voice note as the single emotional peak — a spoken
- * proposal carries more than any animation could. */
-export function ValentineReading({ senderName, accentFrom, accentTo, onComplete }: ValentineReadingProps) {
+/** Gyroscope tilt stays layered on top of the scroll-driven motion (additive
+ * depth on the intro beat only — a `transform` on any ancestor of the pinned/
+ * fixed sections below would break their `position: sticky`/`fixed` behavior,
+ * so the tilt lives on a self-contained `custom` beat, not a page wrapper).
+ * The voice note stays the letter's emotional core; hold-to-reveal on the
+ * final line is the one pinned peak. */
+export function ValentineReading({ letter, onComplete }: ValentineReadingProps) {
+  const { accentFrom, accentTo, senderName } = letter
   const { tilt, needsPermission, requestPermission } = useDeviceTilt()
 
   const intro = scene({ id: 'intro', heading: 'I’ve been trying to write this for a week.', body: 'Every version sounded too small for what I actually feel.' })
   const finalLine = scene({ id: 'final', heading: 'So here it is, plainly:', body: 'Will you be mine — not just today, but on purpose, every day after this one?' })
 
-  const pages = [
-    <div key="intro" className="relative w-full h-full" style={{ transform: `perspective(800px) rotateX(${tilt.y * -4}deg) rotateY(${tilt.x * 4}deg)` }}>
-      <LetterPageContent scene={intro} index={0} total={3} accentFrom={accentFrom} accentTo={accentTo} />
-    </div>,
-    <div key="voice" className="paper-grain absolute inset-0 rounded-2xl bg-[#FBF6EC] shadow-2xl overflow-hidden">
-      <VoiceNotePage
-        text={`I recorded this because some things need to be said out loud, not typed. This is ${senderName || 'me'}, and I mean every word.`}
-        speakerLabel={senderName ? `From ${senderName}` : 'A voice note'}
-        accentFrom={accentFrom}
-        accentTo={accentTo}
-      />
-    </div>,
-    <HoldToReveal key="final" label="Hold, and don’t let go" onReveal={onComplete}>
-      <LetterPageContent scene={finalLine} index={2} total={3} accentFrom={accentFrom} accentTo={accentTo} />
-    </HoldToReveal>,
+  const sections: ScrollySection[] = [
+    {
+      id: 'intro',
+      kind: 'custom',
+      render: () => (
+        <div
+          className="relative w-full h-[60vh] max-h-[520px] mx-auto"
+          style={{ transform: `perspective(800px) rotateX(${tilt.y * -4}deg) rotateY(${tilt.x * 4}deg)` }}
+        >
+          <LetterPageContent scene={intro} index={0} total={3} accentFrom={accentFrom} accentTo={accentTo} />
+        </div>
+      ),
+    },
+    {
+      id: 'voice',
+      kind: 'voice',
+      text: `I recorded this because some things need to be said out loud, not typed. This is ${senderName || 'me'}, and I mean every word.`,
+      speakerLabel: senderName ? `From ${senderName}` : 'A voice note',
+    },
+    {
+      id: 'final',
+      kind: 'pinned-hero',
+      render: () => (
+        <HoldToReveal label="Hold, and don’t let go" onReveal={onComplete}>
+          <LetterPageContent scene={finalLine} index={2} total={3} accentFrom={accentFrom} accentTo={accentTo} />
+        </HoldToReveal>
+      ),
+    },
   ]
 
   return (
@@ -54,7 +69,7 @@ export function ValentineReading({ senderName, accentFrom, accentTo, onComplete 
           Enable tilt for depth
         </button>
       )}
-      <SimplePager pages={pages} onComplete={onComplete} />
+      <ScrollytellingReel sections={sections} accentFrom={accentFrom} accentTo={accentTo} onComplete={onComplete} />
     </>
   )
 }
