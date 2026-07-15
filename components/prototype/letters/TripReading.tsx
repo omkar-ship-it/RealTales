@@ -20,7 +20,7 @@ const SECTIONS: ScrollySection[] = [
  * same engine. */
 export function TripReading({ accentFrom, accentTo, onComplete }: TripReadingProps) {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-[#120E0A]">
       <ScrollytellingReel sections={SECTIONS} accentFrom={accentFrom} accentTo={accentTo} />
       <div className="flex justify-center pb-24">
         <button

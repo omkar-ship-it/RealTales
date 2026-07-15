@@ -18,7 +18,7 @@ const SECTIONS: ScrollySection[] = [
  * pace is scroll position, not a tap you have to find. */
 export function AnniversaryReading({ accentFrom, accentTo, onComplete }: AnniversaryReadingProps) {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-[#120E0A]">
       <ScrollytellingReel sections={SECTIONS} accentFrom={accentFrom} accentTo={accentTo} />
       <div className="flex justify-center pb-24">
         <button

@@ -22,7 +22,7 @@ const SECTIONS: ScrollySection[] = [
  * this letter uses the plain gate instead. */
 export function AppreciationReading({ accentFrom, accentTo, onComplete }: AppreciationReadingProps) {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-[#120E0A]">
       <ScrollytellingReel sections={SECTIONS} accentFrom={accentFrom} accentTo={accentTo} />
       <div className="flex justify-center pb-24">
         <button

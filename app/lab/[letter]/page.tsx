@@ -1,8 +1,9 @@
 'use client'
-import { use, useState } from 'react'
+import { use, useRef, useState } from 'react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { getLabLetter, type LabLetter } from '@/lib/prototypes/letters'
+import { getMusicTrack } from '@/lib/music'
 import { LetterGate } from '@/components/reveal/LetterGate'
 import { ClosingRitual } from '@/components/reveal/ClosingRitual'
 import { EndingScreen } from '@/components/reveal/EndingScreen'
@@ -26,6 +27,7 @@ export default function LabLetterPage({ params }: { params: Promise<{ letter: st
   const { letter: routeSlug } = use(params)
   const letter = getLabLetter(routeSlug)
   const [stage, setStage] = useState<Stage>('gate')
+  const audioRef = useRef<HTMLAudioElement>(null)
 
   if (!letter) {
     return (
@@ -37,10 +39,20 @@ export default function LabLetterPage({ params }: { params: Promise<{ letter: st
   }
 
   const slug = `lab-${letter.slug}`
-  const handleGateBegin = () => setStage(letter.gate === 'webgl' ? 'opening' : 'reading')
+  const track = getMusicTrack(letter.musicTrackId)
+  const handleGateBegin = () => {
+    audioRef.current?.play().catch(() => {}) // must be called synchronously from the tap handler for iOS
+    setStage(letter.gate === 'webgl' ? 'opening' : 'reading')
+  }
+  const handleWatchAgain = () => {
+    audioRef.current?.play().catch(() => {})
+    setStage('reading')
+  }
 
   return (
     <>
+      {track && <audio ref={audioRef} src={track.fileUrl} loop preload="auto" />}
+
       {stage === 'gate' && (
         <LetterGate
           senderName={letter.senderName}
@@ -55,16 +67,20 @@ export default function LabLetterPage({ params }: { params: Promise<{ letter: st
         <WebGLEnvelope accentFrom={letter.accentFrom} accentTo={letter.accentTo} onComplete={() => setStage('reading')} />
       )}
 
-      {stage === 'reading' && <ReadingFor letter={letter} onComplete={() => setStage('closing')} />}
+      {stage === 'reading' && (
+        <ReadingFor letter={letter} onComplete={() => { audioRef.current?.pause(); setStage('closing') }} />
+      )}
 
-      {stage === 'closing' && <ClosingRitual slug={slug} onContinue={() => setStage('ending')} />}
+      {stage === 'closing' && (
+        <ClosingRitual slug={slug} onContinue={() => setStage('ending')} />
+      )}
 
       {stage === 'ending' && (
         <EndingScreen
           slug={slug}
           senderName={letter.senderName}
           recipientName={letter.recipientName}
-          onWatchAgain={() => setStage('reading')}
+          onWatchAgain={handleWatchAgain}
         />
       )}
     </>
