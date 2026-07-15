@@ -8,10 +8,10 @@ export default function LabIndexPage() {
         <p className="text-xs font-semibold tracking-[0.2em] uppercase text-[#D9A441] mb-2">RealTales Lab</p>
         <h1 className="font-display italic text-3xl mb-2">Receiver experience prototypes</h1>
         <p className="text-white/60 text-sm mb-10 max-w-lg">
-          Ten sample letters — nine built on one scrollytelling engine (pinned peak moments, photo galleries,
-          voice notes), plus one walking-sim-style room experiment testing tap-to-explore against linear scroll
-          on identical content. Not production, not wired to the builder. Open one, read it through, and see
-          how it feels.
+          Eleven sample letters — nine built on one scrollytelling engine (pinned peak moments, photo galleries,
+          voice notes), plus two Appreciation experiments testing different mechanics on identical content:
+          tap-to-explore in a room, and a parchment scroll unrolled from a dowel. Not production, not wired to
+          the builder. Open one, read it through, and see how it feels.
         </p>
         <div className="space-y-3">
           {LAB_LETTERS.map(l => (

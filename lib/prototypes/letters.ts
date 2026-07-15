@@ -20,6 +20,7 @@ export const LAB_LETTERS: LabLetter[] = [
   { slug: 'trip', title: 'Trip Memory Letter', tests: 'Scrollytelling — horizontal photo gallery + pinned best-moment peak', senderName: 'The Squad', recipientName: 'You', accentFrom: '#2E8F8F', accentTo: '#1D6363', musicTrackId: 'adventure-acoustic' },
   { slug: 'appreciation', title: 'Appreciation Letter', tests: 'Scrollytelling — husband-to-wife, text/photo mix + pinned devotion peak', senderName: 'Rahul', recipientName: 'Simran', accentFrom: '#A8456B', accentTo: '#5C2340', musicTrackId: 'heartfelt-sweet' },
   { slug: 'appreciation-room', title: 'Appreciation Letter — Room', tests: 'Room/discovery mode — same content as Appreciation, tap-to-explore instead of linear scroll', senderName: 'Rahul', recipientName: 'Simran', accentFrom: '#A8456B', accentTo: '#5C2340', musicTrackId: 'heartfelt-sweet' },
+  { slug: 'appreciation-scroll', title: 'Appreciation Letter — Scroll', tests: 'Parchment/scroll mode — same content as Appreciation, unrolled from a dowel on plain scroll', senderName: 'Rahul', recipientName: 'Simran', accentFrom: '#A8456B', accentTo: '#5C2340', musicTrackId: 'heartfelt-sweet' },
 ]
 
 export function getLabLetter(slug: string): LabLetter | undefined {
