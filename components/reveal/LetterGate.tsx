@@ -7,21 +7,19 @@ interface LetterGateProps {
   recipientName?: string
   accentFrom: string
   accentTo: string
-  /** Called once the seal is broken (drag threshold, or the tap fallback) — start audio here, synchronously, for iOS autoplay rules. */
+  /** Called on tap — start audio here, synchronously, for iOS autoplay rules. */
   onBegin: () => void
 }
-
-const BREAK_THRESHOLD = 46
 
 /**
  * The first screen — light, paper-toned, the opposite of the reveal's dark theme.
  * The recipient's and sender's names are both shown here (not hidden until after
  * opening) so this reads as trustworthy rather than an anonymous mystery link.
- * Opening is a seal-break gesture (drag the wax seal down to crack it) with a
- * plain tap-to-open fallback for discoverability/accessibility.
+ * Opening is a single obvious tap on the envelope — no drag gesture (tested
+ * poorly: people didn't discover it, and the earlier "or tap to open" fallback
+ * was too easy to miss as a secondary link under a drag-first instruction).
  */
 export function LetterGate({ senderName, recipientName, accentFrom, accentTo, onBegin }: LetterGateProps) {
-  const [dragProgress, setDragProgress] = useState(0)
   const [breaking, setBreaking] = useState(false)
 
   const triggerOpen = () => {
@@ -42,12 +40,16 @@ export function LetterGate({ senderName, recipientName, accentFrom, accentTo, on
       </p>
       <p className="text-sm text-text-2 mb-10">from {senderName || 'someone who cares'}</p>
 
-      <motion.div
+      <motion.button
+        type="button"
+        onClick={triggerOpen}
+        disabled={breaking}
         animate={breaking ? { y: 24, opacity: 0, rotate: -4 } : { y: 0, opacity: 1, rotate: 0 }}
+        whileTap={breaking ? undefined : { scale: 0.97 }}
         transition={{ duration: 0.5, ease: 'easeIn' }}
-        className="relative"
+        className="relative cursor-pointer"
       >
-        {/* Envelope */}
+        {/* Envelope — the whole thing is the tap target */}
         <div className="relative w-64 h-44 sm:w-72 sm:h-48 rounded-xl bg-surface shadow-lg overflow-hidden border border-border">
           <div
             className="absolute inset-x-0 top-0 h-1/2 bg-surface-2"
@@ -55,25 +57,14 @@ export function LetterGate({ senderName, recipientName, accentFrom, accentTo, on
           />
         </div>
 
-        {/* Wax seal — draggable to "crack" open */}
-        <motion.div
-          drag={breaking ? false : 'y'}
-          dragConstraints={{ top: 0, bottom: 60 }}
-          dragElastic={0.35}
-          dragSnapToOrigin
-          onDrag={(_, info) => setDragProgress(Math.min(1, Math.max(0, info.offset.y / BREAK_THRESHOLD)))}
-          onDragEnd={(_, info) => {
-            if (info.offset.y >= BREAK_THRESHOLD) triggerOpen()
-            else setDragProgress(0)
-          }}
-          whileTap={{ scale: 0.96 }}
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 rounded-full flex items-center justify-center cursor-grab active:cursor-grabbing shadow-md"
+        {/* Wax seal */}
+        <div
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 rounded-full flex items-center justify-center shadow-md"
           style={{ background: `linear-gradient(160deg, ${accentFrom} 0%, ${accentTo} 100%)` }}
         >
           <span className="font-display italic text-white text-xl select-none">
             {(senderName || 'L').trim().charAt(0).toUpperCase()}
           </span>
-          {/* Crack line, grows with drag progress */}
           <svg className="absolute inset-0 w-full h-full" viewBox="0 0 56 56" fill="none">
             <motion.path
               d="M18 14 L26 26 L20 32 L34 44"
@@ -82,20 +73,17 @@ export function LetterGate({ senderName, recipientName, accentFrom, accentTo, on
               strokeLinecap="round"
               strokeLinejoin="round"
               pathLength={1}
-              style={{ pathLength: dragProgress, opacity: dragProgress }}
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={breaking ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
+              transition={{ duration: 0.25 }}
             />
           </svg>
-        </motion.div>
-      </motion.div>
+        </div>
+      </motion.button>
 
-      <p className="text-xs font-semibold tracking-[0.15em] uppercase text-text-3 mt-8 mb-1">
-        {breaking ? 'Opening…' : 'Drag the seal to open'}
+      <p className="text-sm font-semibold text-brand mt-8">
+        {breaking ? 'Opening…' : 'Tap to open'}
       </p>
-      {!breaking && (
-        <button onClick={triggerOpen} className="text-xs text-text-3 underline underline-offset-2 mt-1">
-          or tap to open
-        </button>
-      )}
 
       <p className="text-[11px] text-text-3 mt-10">Made with care · RealTales</p>
     </div>

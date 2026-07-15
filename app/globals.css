@@ -50,6 +50,12 @@ body {
   background-size: 3px 3px;
 }
 
+/* Voice note waveform bars */
+@keyframes voicebar {
+  0%   { transform: scaleY(0.4); }
+  100% { transform: scaleY(1); }
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }

@@ -19,11 +19,12 @@ interface LetterPagesProps {
 
 /**
  * Letter-reading engine: one page on screen at a time, read at your own pace
- * (natural scroll inside the page — see LetterPageContent), advanced by a
- * tap on the page edges — the page still animates as if it's turning, just
- * without requiring a drag gesture to get there (dragging tested poorly).
- * Edge zones are narrow so the center of the page stays free for scrolling
- * to read long content.
+ * (natural scroll inside the page — see LetterPageContent), advanced by real,
+ * always-visible Back/Next buttons — not a drag gesture (tested poorly) and
+ * not near-invisible edge tap zones (also tested poorly: nothing on screen
+ * looked like a button, so people tapped the page-stack indicator instead,
+ * which isn't interactive). The turn itself is still an animation; only the
+ * trigger changed.
  */
 export function LetterPages({ scenes, senderName, recipientName, accentFrom, accentTo, onComplete }: LetterPagesProps) {
   const [pageIndex, setPageIndex] = useState(-1) // -1 = title beat, 0..n-1 = paper pages
@@ -82,26 +83,27 @@ export function LetterPages({ scenes, senderName, recipientName, accentFrom, acc
               <LetterPageContent scene={scenes[pageIndex]} index={pageIndex} total={scenes.length} accentFrom={accentFrom} accentTo={accentTo} />
             )}
           </motion.div>
-
-          {/* Edge tap zones — narrow, so the center stays free for scrolling to read */}
-          {!atStart && (
-            <button
-              aria-label="Previous page"
-              onClick={goBack}
-              className="absolute left-0 top-0 bottom-0 w-[18%] z-10 flex items-center justify-start pl-1.5 text-white/0 hover:text-white/25 transition-colors"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-          )}
-          <button
-            aria-label="Next page"
-            onClick={goNext}
-            className="absolute right-0 top-0 bottom-0 w-[18%] z-10 flex items-center justify-end pr-1.5 text-white/15 hover:text-white/35 transition-colors"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
         </div>
       </div>
+
+      {/* Real, always-visible navigation — not an edge gesture to discover */}
+      {!atStart && (
+        <button
+          aria-label="Previous page"
+          onClick={goBack}
+          className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-white/10 border border-white/15 backdrop-blur flex items-center justify-center text-white/80 hover:bg-white/20 transition-colors"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+      )}
+      <button
+        aria-label="Next page"
+        onClick={goNext}
+        className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg hover:brightness-110 transition-[filter]"
+        style={{ background: 'linear-gradient(160deg, #F3D9A8 0%, #D9A441 100%)', color: '#2B2140' }}
+      >
+        <ChevronRight className="w-5 h-5" />
+      </button>
 
       <div className="absolute bottom-6 inset-x-0 flex items-center justify-center z-20">
         <button
@@ -125,7 +127,7 @@ function TitleCard({ senderName, recipientName }: { senderName: string; recipien
       <p className="font-display italic text-4xl sm:text-5xl leading-tight bg-clip-text text-transparent" style={{ backgroundImage: 'linear-gradient(160deg, #F3D9A8 0%, #D9A441 100%)' }}>
         {recipientName || 'you'}
       </p>
-      <p className="text-xs text-white/40 mt-10">Tap to turn the page</p>
+      <p className="text-xs text-white/40 mt-10">Tap the arrow to begin</p>
     </div>
   )
 }
