@@ -1,8 +1,9 @@
 'use client'
 import { useState } from 'react'
-import { Frame, Images, Image as ImageIcon, Music, StickyNote } from 'lucide-react'
+import { Frame, Images, Image as ImageIcon, Music, StickyNote, Wallet } from 'lucide-react'
 import { RoomReveal, type RoomHotspot } from '../RoomReveal'
 import { VoiceNotePage } from '../VoiceNotePage'
+import { ScratchReveal } from '../gestures/ScratchReveal'
 import type { LabLetter } from '@/lib/prototypes/letters'
 
 interface AppreciationRoomReadingProps {
@@ -64,11 +65,44 @@ function NoteCard({ passages }: { passages: Array<{ heading: string; body: strin
   )
 }
 
+/** A stylized "photographed keepsake" mockup — paper texture, slight rotation, a
+ * drop shadow like something laid on a table and shot from above — not a real
+ * photo (no image-generation tool available, and there's no genuine keepsake to
+ * photograph for a fictional demo letter), but honestly presented as a digital
+ * mockup rather than claiming to be more than it is. In the real product this
+ * would be a sender-uploaded photo of an actual keepsake. */
+function SurpriseCard() {
+  return (
+    <div className="pt-9 px-7 pb-6 text-center">
+      <div
+        className="mx-auto w-44 bg-white p-3 pb-5 mb-5"
+        style={{ transform: 'rotate(-4deg)', boxShadow: '0 10px 24px rgba(0,0,0,0.28)' }}
+      >
+        <div className="paper-grain bg-[#F3EDDD] px-3 py-4 text-left border border-black/5">
+          <p className="font-hand text-base text-[#3B2F2F] leading-snug">
+            Table for two
+            <br />7:45 PM
+            <br />2 coffees, 1 slice
+            <br />— keep forever —
+          </p>
+        </div>
+      </div>
+      <p className="font-display italic text-xl text-[#2B2140] mb-2">There’s something you don’t know I still have.</p>
+      <p className="font-hand text-lg text-[#3B2F2F] leading-relaxed">The receipt from our first date — creased, faded, still in my wallet. I never told you. Some things you just… keep.</p>
+    </div>
+  )
+}
+
 /**
  * The walking-sim experiment — identical content to `AppreciationReading`,
- * restructured from a linear scroll into six discoverable objects in one
+ * restructured from a linear scroll into seven discoverable objects in one
  * room, so any difference in how it feels is attributable to the mechanic
- * (tap-to-explore vs. linear scroll), not the material.
+ * (tap-to-explore vs. linear scroll), not the material. Two beats specifically
+ * use a *meaningful* gesture rather than a plain tap: the surprise keepsake is
+ * scratch-revealed (the gesture means "uncovering something hidden," same
+ * reasoning as Birthday's scratch-reveal), and the peak is held-to-reveal in
+ * `RoomReveal` itself (the gesture means "steadfast commitment," matching what
+ * the line actually says).
  */
 export function AppreciationRoomReading({ letter, onComplete, onVoicePlayingChange }: AppreciationRoomReadingProps) {
   const { accentFrom, accentTo, senderName } = letter
@@ -78,8 +112,8 @@ export function AppreciationRoomReading({ letter, onComplete, onVoicePlayingChan
       id: 'frame',
       label: 'A photo frame',
       icon: Frame,
-      x: 25,
-      y: 26,
+      x: 20,
+      y: 22,
       depth: 2,
       render: () => <PhotoCard src="/images/appreciation/her-warmth.jpg" caption="This is the face I still look for first in any room." />,
     },
@@ -87,17 +121,34 @@ export function AppreciationRoomReading({ letter, onComplete, onVoicePlayingChan
       id: 'stack',
       label: 'A stack of photos',
       icon: Images,
-      x: 74,
-      y: 30,
+      x: 78,
+      y: 24,
       depth: 2,
       render: () => <PhotoStackCard />,
+    },
+    {
+      id: 'surprise',
+      label: 'A worn keepsake',
+      icon: Wallet,
+      x: 50,
+      y: 42,
+      depth: 2.5,
+      render: () => (
+        <div className="h-[480px]">
+          <ScratchReveal label="Scratch to see what he kept" accentFrom={accentFrom} accentTo={accentTo}>
+            <div className="paper-grain w-full h-full overflow-y-auto bg-[#FBF6EC]">
+              <SurpriseCard />
+            </div>
+          </ScratchReveal>
+        </div>
+      ),
     },
     {
       id: 'note1',
       label: 'A folded note',
       icon: StickyNote,
-      x: 36,
-      y: 68,
+      x: 24,
+      y: 62,
       depth: 3,
       render: () => (
         <NoteCard
@@ -112,8 +163,8 @@ export function AppreciationRoomReading({ letter, onComplete, onVoicePlayingChan
       id: 'note2',
       label: 'Another note',
       icon: StickyNote,
-      x: 63,
-      y: 74,
+      x: 76,
+      y: 64,
       depth: 3,
       render: () => (
         <NoteCard
@@ -128,8 +179,8 @@ export function AppreciationRoomReading({ letter, onComplete, onVoicePlayingChan
       id: 'old-photo',
       label: 'An old photo',
       icon: ImageIcon,
-      x: 16,
-      y: 56,
+      x: 50,
+      y: 80,
       depth: 2.5,
       render: () => <PhotoCard src="/images/appreciation/ordinary-tuesdays.jpg" caption="The scuff marks from a thousand ordinary Tuesdays, right there on the floor." />,
     },
@@ -138,8 +189,8 @@ export function AppreciationRoomReading({ letter, onComplete, onVoicePlayingChan
       label: 'A music box',
       icon: Music,
       hidden: true,
-      x: 86,
-      y: 63,
+      x: 90,
+      y: 50,
       depth: 1.5,
       render: () => (
         <div className="h-[420px] pt-2">

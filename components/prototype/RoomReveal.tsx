@@ -7,6 +7,7 @@ import { Starfield } from '@/components/reveal/Starfield'
 import { useDeviceTilt } from '@/hooks/useDeviceTilt'
 import { playPaperRustle, playChime } from '@/lib/prototype-sound'
 import { PeakLine } from './ScrollytellingReel'
+import { HoldToReveal } from './gestures/HoldToReveal'
 
 export interface RoomHotspot {
   id: string
@@ -47,6 +48,7 @@ export function RoomReveal({ hotspots, accentFrom, accentTo, peakEyebrow, peakLi
   const reduceMotion = !!useReducedMotion()
   const [discovered, setDiscovered] = useState<Set<string>>(new Set())
   const [openId, setOpenId] = useState<string | null>(null)
+  const [peakRevealed, setPeakRevealed] = useState(false)
   const [pointer, setPointer] = useState({ x: 0, y: 0 })
   const { tilt, needsPermission, requestPermission } = useDeviceTilt(!reduceMotion)
 
@@ -166,19 +168,26 @@ export function RoomReveal({ hotspots, accentFrom, accentTo, peakEyebrow, peakLi
               transition={{ type: 'spring', stiffness: 220, damping: 20, delay: 0.15 }}
               className="w-full max-w-md h-[40vh]"
             >
-              <PeakLine eyebrow={peakEyebrow} line={peakLine} accentFrom={accentFrom} />
+              {/* The peak isn't just handed over on arrival — it has to be held to,
+                  same gesture Valentine's proposal line uses, chosen because this
+                  line is literally about steadfast commitment; asking the reader
+                  to physically hold and not let go says the same thing the words do. */}
+              <HoldToReveal label="Hold, and don’t let go" onReveal={() => setPeakRevealed(true)}>
+                <PeakLine eyebrow={peakEyebrow} line={peakLine} accentFrom={accentFrom} />
+              </HoldToReveal>
             </motion.div>
-            <motion.button
-              type="button"
-              onClick={onComplete}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 }}
-              className="px-6 py-3 rounded-full font-semibold text-sm text-[#2B2140] mt-4"
-              style={{ background: `linear-gradient(160deg, ${accentFrom} 0%, ${accentTo} 100%)` }}
-            >
-              Close the letter
-            </motion.button>
+            {peakRevealed && (
+              <motion.button
+                type="button"
+                onClick={onComplete}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="px-6 py-3 rounded-full font-semibold text-sm text-[#2B2140] mt-4"
+                style={{ background: `linear-gradient(160deg, ${accentFrom} 0%, ${accentTo} 100%)` }}
+              >
+                Close the letter
+              </motion.button>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
