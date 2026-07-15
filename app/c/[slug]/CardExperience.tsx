@@ -59,7 +59,13 @@ export function CardExperience({ slug, senderName, recipientName, occasion, scen
       )}
 
       {stage === 'closing' && (
-        <ClosingRitual slug={slug} onContinue={() => setStage('ending')} />
+        <ClosingRitual
+          slug={slug}
+          senderName={senderName}
+          accentFrom={meta.accentFrom}
+          accentTo={meta.accentTo}
+          onContinue={() => setStage('ending')}
+        />
       )}
 
       {stage === 'ending' && (

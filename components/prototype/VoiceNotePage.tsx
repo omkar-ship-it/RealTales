@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Play, Pause } from 'lucide-react'
 
 interface VoiceNotePageProps {
@@ -7,6 +7,10 @@ interface VoiceNotePageProps {
   speakerLabel?: string
   accentFrom: string
   accentTo: string
+  /** A real recorded/uploaded clip. When present, playback uses this file
+   * instead of `speechSynthesis` — the honest version of a voice note. Falls
+   * back to TTS when absent, since real personal voice can't be faked. */
+  audioUrl?: string
   /** Lets the caller duck background music while the voice note is speaking —
    * the two competing for attention undercuts both. */
   onPlayingChange?: (playing: boolean) => void
@@ -19,18 +23,21 @@ function hash(n: number): number {
 }
 
 /**
- * A voice note page — just a waveform and play/pause. Audio is the browser's
- * native speechSynthesis reading the text: a transparent placeholder for what a
- * voice-note page *feels* like (the interaction pattern), since real personal
- * voice can't be faked — that's the thing being tested here, not audio quality.
+ * A voice note page — a waveform and play/pause, backed by either a real
+ * `audioUrl` clip or, when absent, the browser's native `speechSynthesis`
+ * reading the text out loud (a transparent placeholder for what a voice-note
+ * page *feels* like, since real personal voice can't be faked without one).
  */
-export function VoiceNotePage({ text, speakerLabel, accentFrom, accentTo, onPlayingChange }: VoiceNotePageProps) {
+export function VoiceNotePage({ text, speakerLabel, accentFrom, accentTo, audioUrl, onPlayingChange }: VoiceNotePageProps) {
   const [playing, setPlaying] = useState(false)
+  const audioRef = useRef<HTMLAudioElement>(null)
   const bars = useMemo(() => Array.from({ length: 26 }, (_, i) => 0.25 + hash(i) * 0.75), [])
 
   useEffect(() => {
+    const audioEl = audioRef.current
     return () => {
       window.speechSynthesis?.cancel()
+      audioEl?.pause()
       onPlayingChange?.(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -42,6 +49,16 @@ export function VoiceNotePage({ text, speakerLabel, accentFrom, accentTo, onPlay
   }
 
   const toggle = () => {
+    if (audioUrl) {
+      const audio = audioRef.current
+      if (!audio) return
+      if (playing) {
+        audio.pause() // onPause below updates state
+      } else {
+        audio.play().catch(() => {}) // onPlay below updates state
+      }
+      return
+    }
     if (playing) {
       window.speechSynthesis.cancel()
       setPlayingState(false)
@@ -58,6 +75,17 @@ export function VoiceNotePage({ text, speakerLabel, accentFrom, accentTo, onPlay
 
   return (
     <div className="h-full flex flex-col items-center justify-center gap-6 px-8 text-center">
+      {audioUrl && (
+        <audio
+          ref={audioRef}
+          src={audioUrl}
+          preload="auto"
+          onPlay={() => setPlayingState(true)}
+          onPause={() => setPlayingState(false)}
+          onEnded={() => setPlayingState(false)}
+        />
+      )}
+
       <p className="text-xs font-semibold tracking-[0.2em] uppercase text-[#8B7E68]">{speakerLabel ?? 'Voice note'}</p>
 
       <button

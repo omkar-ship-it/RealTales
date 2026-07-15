@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { getLabLetter, type LabLetter } from '@/lib/prototypes/letters'
 import { getMusicTrack } from '@/lib/music'
 import { LetterGate } from '@/components/reveal/LetterGate'
+import { ClosingRitual } from '@/components/reveal/ClosingRitual'
 import { EndingScreen } from '@/components/reveal/EndingScreen'
 import { AnniversaryReading } from '@/components/prototype/letters/AnniversaryReading'
 import { BirthdayReading } from '@/components/prototype/letters/BirthdayReading'
@@ -15,7 +16,7 @@ import { FriendReading } from '@/components/prototype/letters/FriendReading'
 import { TripReading } from '@/components/prototype/letters/TripReading'
 import { AppreciationReading } from '@/components/prototype/letters/AppreciationReading'
 
-type Stage = 'gate' | 'reading' | 'ending'
+type Stage = 'gate' | 'reading' | 'closing' | 'ending'
 
 export default function LabLetterPage({ params }: { params: Promise<{ letter: string }> }) {
   const { letter: routeSlug } = use(params)
@@ -68,8 +69,18 @@ export default function LabLetterPage({ params }: { params: Promise<{ letter: st
       {stage === 'reading' && (
         <ReadingFor
           letter={letter}
-          onComplete={() => { audioRef.current?.pause(); setStage('ending') }}
+          onComplete={() => { audioRef.current?.pause(); setStage('closing') }}
           onVoicePlayingChange={handleVoicePlayingChange}
+        />
+      )}
+
+      {stage === 'closing' && (
+        <ClosingRitual
+          slug={slug}
+          senderName={letter.senderName}
+          accentFrom={letter.accentFrom}
+          accentTo={letter.accentTo}
+          onContinue={() => setStage('ending')}
         />
       )}
 

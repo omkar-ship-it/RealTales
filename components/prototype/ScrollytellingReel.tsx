@@ -12,7 +12,7 @@ export type ScrollySection =
   /** The one pin+scrub peak per letter — held center-stage while the page scrolls past it, instead of
    * just fading in. `holdVh` lets a letter's true peak (vs. its neighbors) claim extra dwell time. */
   | { id: string; kind: 'pinned-hero'; render: () => ReactNode; holdVh?: number }
-  | { id: string; kind: 'voice'; text: string; speakerLabel?: string }
+  | { id: string; kind: 'voice'; text: string; speakerLabel?: string; audioUrl?: string }
   | { id: string; kind: 'interactive'; render: () => ReactNode }
   /** Same blur-in reveal chrome as `text`, but caller-supplied content — for
    * beats that need their own inline transform (e.g. Valentine's gyroscope
@@ -96,7 +96,7 @@ function SectionRenderer({ section, index, accentFrom, accentTo, reduceMotion, o
     case 'pinned-hero':
       return <PinnedHero reduceMotion={reduceMotion} holdVh={section.holdVh}>{section.render()}</PinnedHero>
     case 'voice':
-      return <VoiceBeat text={section.text} speakerLabel={section.speakerLabel} accentFrom={accentFrom} accentTo={accentTo} onPlayingChange={onVoicePlayingChange} />
+      return <VoiceBeat text={section.text} speakerLabel={section.speakerLabel} audioUrl={section.audioUrl} accentFrom={accentFrom} accentTo={accentTo} onPlayingChange={onVoicePlayingChange} />
     case 'interactive':
       return <InteractiveBeat reduceMotion={reduceMotion}>{section.render()}</InteractiveBeat>
     case 'custom':
@@ -327,13 +327,13 @@ function PinnedHero({ children, reduceMotion, holdVh = 170 }: { children: ReactN
 /** Voice notes are self-paced by their own play button, not scroll — so this is
  * a plain scroll-in beat, no pin, styled as the same paper card the rest of the
  * project uses for a voice moment. */
-function VoiceBeat({ text, speakerLabel, accentFrom, accentTo, onPlayingChange }: { text: string; speakerLabel?: string; accentFrom: string; accentTo: string; onPlayingChange?: (playing: boolean) => void }) {
+function VoiceBeat({ text, speakerLabel, audioUrl, accentFrom, accentTo, onPlayingChange }: { text: string; speakerLabel?: string; audioUrl?: string; accentFrom: string; accentTo: string; onPlayingChange?: (playing: boolean) => void }) {
   const ref = useRef<HTMLDivElement>(null)
   const { opacity, y } = useRevealMotion(ref, false)
   return (
     <div ref={ref} className="min-h-[60vh] flex items-center justify-center px-8 py-16">
       <motion.div style={{ opacity, y }} className="w-full max-w-sm h-[420px] relative paper-grain rounded-2xl bg-[#FBF6EC] shadow-2xl overflow-hidden">
-        <VoiceNotePage text={text} speakerLabel={speakerLabel} accentFrom={accentFrom} accentTo={accentTo} onPlayingChange={onPlayingChange} />
+        <VoiceNotePage text={text} speakerLabel={speakerLabel} audioUrl={audioUrl} accentFrom={accentFrom} accentTo={accentTo} onPlayingChange={onPlayingChange} />
       </motion.div>
     </div>
   )

@@ -43,6 +43,10 @@ export function AppreciationReading({ letter, onComplete, onVoicePlayingChange }
     },
     { id: 'small-things', kind: 'text', eyebrow: 'The small things', heading: 'Coffee made just the way I like it. A text at exactly the right moment.', body: 'Love isn’t the big gestures — it’s you, remembering, every single day.' },
     {
+      // `VoiceNotePage` now supports a real `audioUrl`, but there's no genuine
+      // recording of "Rahul's voice" to point it at for a fictional demo
+      // letter — the capability is what this round built, not new content.
+      // Leaving `audioUrl` unset falls back to speechSynthesis, unchanged.
       id: 'message',
       kind: 'voice',
       speakerLabel: senderName ? `From ${senderName}` : 'A voice note',
