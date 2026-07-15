@@ -23,6 +23,8 @@ export default function LabIndexPage() {
             </Link>
           ))}
         </div>
+
+        <p className="text-xs text-white/30 mt-12 text-center">Music by Bensound.com</p>
       </div>
     </div>
   )

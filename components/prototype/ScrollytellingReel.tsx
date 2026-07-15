@@ -1,6 +1,7 @@
 'use client'
-import { useRef } from 'react'
+import { useMemo, useRef } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
+import { Heart } from 'lucide-react'
 
 export interface ScrollySection {
   id: string
@@ -52,7 +53,7 @@ function ScrollySection({ section, index, accentFrom, accentTo }: { section: Scr
               // eslint-disable-next-line @next/next/no-img-element
               <img src={section.imageUrl} alt="" className="w-full h-72 object-cover" />
             ) : (
-              <div className="w-full h-72" style={{ background: `linear-gradient(160deg, ${accentFrom} 0%, ${accentTo} 100%)` }} />
+              <KeepsakeMoment index={index} accentFrom={accentFrom} accentTo={accentTo} />
             )}
           </motion.div>
           {section.caption && <p className="font-hand text-xl text-white/90 mt-4 text-center">{section.caption}</p>}
@@ -65,6 +66,49 @@ function ScrollySection({ section, index, accentFrom, accentTo }: { section: Scr
         </motion.div>
       )}
       <span className="sr-only">Section {index + 1}</span>
+    </div>
+  )
+}
+
+function hash(n: number): number {
+  const x = Math.sin(n * 12.9898) * 43758.5453
+  return x - Math.floor(x)
+}
+
+/** Stand-in for a real photo when a section has no `imageUrl` — deliberately
+ * not a stock photo of a real stranger standing in as "your" moment. A soft
+ * bokeh-lit keepsake card (deterministically varied per section via `hash`,
+ * same technique as Starfield) reads as an evocative abstraction of a memory
+ * rather than a placeholder rectangle or a misleading photo. */
+function KeepsakeMoment({ index, accentFrom, accentTo }: { index: number; accentFrom: string; accentTo: string }) {
+  const bokehs = useMemo(
+    () =>
+      Array.from({ length: 5 }, (_, i) => {
+        const seed = index * 11 + i * 5
+        return {
+          left: `${(hash(seed + 1) * 85).toFixed(1)}%`,
+          top: `${(hash(seed + 2) * 85).toFixed(1)}%`,
+          size: 56 + hash(seed + 3) * 100,
+          opacity: 0.16 + hash(seed + 4) * 0.22,
+        }
+      }),
+    [index],
+  )
+
+  return (
+    <div className="relative w-full h-72" style={{ background: `linear-gradient(160deg, ${accentFrom} 0%, ${accentTo} 100%)` }}>
+      {bokehs.map((b, i) => (
+        <div
+          key={i}
+          className="absolute rounded-full blur-2xl"
+          style={{ left: b.left, top: b.top, width: b.size, height: b.size, background: `rgba(255,255,255,${b.opacity})` }}
+        />
+      ))}
+      <div className="paper-grain absolute inset-0 opacity-25 mix-blend-overlay" />
+      <div className="absolute inset-0" style={{ boxShadow: 'inset 0 0 70px rgba(0,0,0,0.35)' }} />
+      <div className="absolute inset-0 flex items-center justify-center">
+        <Heart className="w-10 h-10 text-white" strokeWidth={1.25} style={{ opacity: 0.5, fill: 'currentColor', fillOpacity: 0.15 }} />
+      </div>
     </div>
   )
 }
