@@ -15,6 +15,7 @@ import { HousewarmingReading } from '@/components/prototype/letters/Housewarming
 import { FriendReading } from '@/components/prototype/letters/FriendReading'
 import { TripReading } from '@/components/prototype/letters/TripReading'
 import { AppreciationReading } from '@/components/prototype/letters/AppreciationReading'
+import { AppreciationRoomReading } from '@/components/prototype/letters/AppreciationRoomReading'
 
 type Stage = 'gate' | 'reading' | 'closing' | 'ending'
 
@@ -116,6 +117,8 @@ function ReadingFor({ letter, onComplete, onVoicePlayingChange }: { letter: LabL
       return <TripReading letter={letter} onComplete={onComplete} />
     case 'appreciation':
       return <AppreciationReading letter={letter} onComplete={onComplete} onVoicePlayingChange={onVoicePlayingChange} />
+    case 'appreciation-room':
+      return <AppreciationRoomReading letter={letter} onComplete={onComplete} onVoicePlayingChange={onVoicePlayingChange} />
     default:
       return null
   }
