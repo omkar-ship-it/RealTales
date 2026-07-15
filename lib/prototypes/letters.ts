@@ -18,6 +18,7 @@ export const LAB_LETTERS: LabLetter[] = [
   { slug: 'housewarming', title: 'Housewarming Invitation', tests: 'Light invitation — single event, calendar, map', senderName: 'Nikhil & Sara', recipientName: 'Friends', accentFrom: '#C97C5D', accentTo: '#8A5A3D', gate: 'plain' },
   { slug: 'friend', title: 'Letter to a Friend', tests: 'Voice-first + hold-to-reveal gesture', senderName: 'Zara', recipientName: 'Ishaan', accentFrom: '#2E8F8F', accentTo: '#1D6363', gate: 'plain' },
   { slug: 'trip', title: 'Trip Memory Letter', tests: 'Scrollytelling — photo-heavy/parallax', senderName: 'The Squad', recipientName: 'You', accentFrom: '#2E8F8F', accentTo: '#1D6363', gate: 'plain' },
+  { slug: 'appreciation', title: 'Appreciation Letter', tests: 'Scrollytelling — husband-to-wife, text/photo mix, WebGL gate skipped', senderName: 'Rahul', recipientName: 'Simran', accentFrom: '#A8456B', accentTo: '#5C2340', gate: 'plain' },
 ]
 
 export function getLabLetter(slug: string): LabLetter | undefined {

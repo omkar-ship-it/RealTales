@@ -14,6 +14,7 @@ import { ValentineReading } from '@/components/prototype/letters/ValentineReadin
 import { HousewarmingReading } from '@/components/prototype/letters/HousewarmingReading'
 import { FriendReading } from '@/components/prototype/letters/FriendReading'
 import { TripReading } from '@/components/prototype/letters/TripReading'
+import { AppreciationReading } from '@/components/prototype/letters/AppreciationReading'
 
 // Lazy-loaded, never blocks the static gate's first paint — prefetches while the
 // recipient is still reading the gate and deciding whether to tap.
@@ -96,6 +97,8 @@ function ReadingFor({ letter, onComplete }: { letter: LabLetter; onComplete: () 
       return <FriendReading senderName={letter.senderName} accentFrom={letter.accentFrom} accentTo={letter.accentTo} onComplete={onComplete} />
     case 'trip':
       return <TripReading accentFrom={letter.accentFrom} accentTo={letter.accentTo} onComplete={onComplete} />
+    case 'appreciation':
+      return <AppreciationReading accentFrom={letter.accentFrom} accentTo={letter.accentTo} onComplete={onComplete} />
     default:
       return null
   }
