@@ -1,15 +1,17 @@
 'use client'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { motion, useScroll, useTransform, useReducedMotion, type MotionValue } from 'framer-motion'
+import { motion, useScroll, useTransform, useMotionValueEvent, useReducedMotion, type MotionValue } from 'framer-motion'
 import { Heart } from 'lucide-react'
 import { VoiceNotePage } from './VoiceNotePage'
+import { playPaperRustle, playChime } from '@/lib/prototype-sound'
 
 export type ScrollySection =
   | { id: string; kind: 'text'; eyebrow?: string; heading?: string; body?: string }
   | { id: string; kind: 'photo'; caption?: string; imageUrl?: string }
-  | { id: string; kind: 'gallery'; items: Array<{ caption?: string; render?: () => ReactNode }> }
-  /** The one pin+scrub peak per letter — held center-stage while the page scrolls past it, instead of just fading in. */
-  | { id: string; kind: 'pinned-hero'; render: () => ReactNode }
+  | { id: string; kind: 'gallery'; items: Array<{ caption?: string; imageUrl?: string; render?: () => ReactNode }> }
+  /** The one pin+scrub peak per letter — held center-stage while the page scrolls past it, instead of
+   * just fading in. `holdVh` lets a letter's true peak (vs. its neighbors) claim extra dwell time. */
+  | { id: string; kind: 'pinned-hero'; render: () => ReactNode; holdVh?: number }
   | { id: string; kind: 'voice'; text: string; speakerLabel?: string }
   | { id: string; kind: 'interactive'; render: () => ReactNode }
   /** Same blur-in reveal chrome as `text`, but caller-supplied content — for
@@ -24,6 +26,9 @@ interface ScrollytellingReelProps {
   accentTo: string
   onComplete: () => void
   closingLabel?: string
+  /** Fires when a voice note starts/stops playing, so the caller can duck the
+   * background music track — a voice note competing with music undercuts both. */
+  onVoicePlayingChange?: (playing: boolean) => void
 }
 
 /** The one reveal engine for every /lab letter. Reading pace *is* progress — no
@@ -42,7 +47,7 @@ interface ScrollytellingReelProps {
  *    engine has none), styled like an ink trail rather than an abstract bar.
  * `useReducedMotion` gates all of it — reduced-motion users get plain fades
  * and stacked layouts, no pin/scrub/parallax. */
-export function ScrollytellingReel({ sections, accentFrom, accentTo, onComplete, closingLabel = 'Close the letter' }: ScrollytellingReelProps) {
+export function ScrollytellingReel({ sections, accentFrom, accentTo, onComplete, closingLabel = 'Close the letter', onVoicePlayingChange }: ScrollytellingReelProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const reduceMotion = !!useReducedMotion()
   const { scrollYProgress } = useScroll({ target: containerRef, offset: ['start start', 'end end'] })
@@ -52,7 +57,7 @@ export function ScrollytellingReel({ sections, accentFrom, accentTo, onComplete,
       {!reduceMotion && <ScrollProgressRail progress={scrollYProgress} accentFrom={accentFrom} accentTo={accentTo} />}
 
       {sections.map((section, i) => (
-        <SectionRenderer key={section.id} section={section} index={i} accentFrom={accentFrom} accentTo={accentTo} reduceMotion={reduceMotion} />
+        <SectionRenderer key={section.id} section={section} index={i} accentFrom={accentFrom} accentTo={accentTo} reduceMotion={reduceMotion} onVoicePlayingChange={onVoicePlayingChange} />
       ))}
 
       <div className="flex justify-center pb-24 pt-8">
@@ -80,7 +85,7 @@ function ScrollProgressRail({ progress, accentFrom, accentTo }: { progress: Moti
   )
 }
 
-function SectionRenderer({ section, index, accentFrom, accentTo, reduceMotion }: { section: ScrollySection; index: number; accentFrom: string; accentTo: string; reduceMotion: boolean }) {
+function SectionRenderer({ section, index, accentFrom, accentTo, reduceMotion, onVoicePlayingChange }: { section: ScrollySection; index: number; accentFrom: string; accentTo: string; reduceMotion: boolean; onVoicePlayingChange?: (playing: boolean) => void }) {
   switch (section.kind) {
     case 'text':
       return <TextBeat section={section} accentFrom={accentFrom} reduceMotion={reduceMotion} />
@@ -89,9 +94,9 @@ function SectionRenderer({ section, index, accentFrom, accentTo, reduceMotion }:
     case 'gallery':
       return <GalleryBeat items={section.items} index={index} accentFrom={accentFrom} accentTo={accentTo} reduceMotion={reduceMotion} />
     case 'pinned-hero':
-      return <PinnedHero reduceMotion={reduceMotion}>{section.render()}</PinnedHero>
+      return <PinnedHero reduceMotion={reduceMotion} holdVh={section.holdVh}>{section.render()}</PinnedHero>
     case 'voice':
-      return <VoiceBeat text={section.text} speakerLabel={section.speakerLabel} accentFrom={accentFrom} accentTo={accentTo} />
+      return <VoiceBeat text={section.text} speakerLabel={section.speakerLabel} accentFrom={accentFrom} accentTo={accentTo} onPlayingChange={onVoicePlayingChange} />
     case 'interactive':
       return <InteractiveBeat reduceMotion={reduceMotion}>{section.render()}</InteractiveBeat>
     case 'custom':
@@ -173,10 +178,11 @@ function PhotoBeat({ section, index, accentFrom, accentTo, reduceMotion }: { sec
 /** Horizontal-inside-vertical gallery — a tall spacer with a sticky track inside
  * it, translated in `x` by the spacer's own vertical scroll progress. Under
  * reduced motion this degrades to a plain vertical stack, no pinning at all. */
-function GalleryBeat({ items, index, accentFrom, accentTo, reduceMotion }: { items: Array<{ caption?: string; render?: () => ReactNode }>; index: number; accentFrom: string; accentTo: string; reduceMotion: boolean }) {
+function GalleryBeat({ items, index, accentFrom, accentTo, reduceMotion }: { items: Array<{ caption?: string; imageUrl?: string; render?: () => ReactNode }>; index: number; accentFrom: string; accentTo: string; reduceMotion: boolean }) {
   const sectionRef = useRef<HTMLDivElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
   const [overflow, setOverflow] = useState(0)
+  const lastCardRef = useRef(0)
 
   useEffect(() => {
     const measure = () => {
@@ -193,6 +199,18 @@ function GalleryBeat({ items, index, accentFrom, accentTo, reduceMotion }: { ite
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start start', 'end end'] })
   const x = useTransform(scrollYProgress, [0, 1], reduceMotion ? [0, 0] : [0, -overflow])
 
+  // A soft rustle each time the horizontal drift crosses into the next card —
+  // a page-turn cue for a beat that otherwise has no gesture to hang sound on.
+  useMotionValueEvent(x, 'change', latest => {
+    if (items.length < 2 || overflow === 0) return
+    const perCard = overflow / (items.length - 1)
+    const card = Math.round(-latest / perCard)
+    if (card !== lastCardRef.current) {
+      lastCardRef.current = card
+      playPaperRustle()
+    }
+  })
+
   const cards = items.map((item, i) => (
     <div key={i} className="w-[78vw] max-w-[320px] shrink-0">
       {item.render ? (
@@ -200,7 +218,12 @@ function GalleryBeat({ items, index, accentFrom, accentTo, reduceMotion }: { ite
       ) : (
         <>
           <div className="rounded-2xl overflow-hidden shadow-2xl border border-white/10">
-            <KeepsakeMoment index={index * 10 + i} accentFrom={accentFrom} accentTo={accentTo} />
+            {item.imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={item.imageUrl} alt="" className="w-full h-72 object-cover" />
+            ) : (
+              <KeepsakeMoment index={index * 10 + i} accentFrom={accentFrom} accentTo={accentTo} />
+            )}
           </div>
           {item.caption && <p className="font-hand text-lg text-white/85 mt-3 text-center">{item.caption}</p>}
         </>
@@ -223,14 +246,34 @@ function GalleryBeat({ items, index, accentFrom, accentTo, reduceMotion }: { ite
   )
 }
 
+const wordVariants = {
+  hidden: { opacity: 0, y: 14, filter: 'blur(6px)' },
+  visible: { opacity: 1, y: 0, filter: 'blur(0px)' },
+}
+
 /** A pinned peak that's just an emphasized line, no gesture — for letters whose
  * peak is a single sentence (the proposal, "I'd choose you") rather than an
- * interactive moment. Sized to fill `PinnedHero`'s fixed-height wrapper. */
+ * interactive moment. Sized to fill `PinnedHero`'s fixed-height wrapper. Words
+ * cascade in one at a time instead of the whole line fading together — the one
+ * line per letter that gets a distinct reveal treatment from its neighbors. */
 export function PeakLine({ eyebrow, line, accentFrom }: { eyebrow?: string; line: string; accentFrom: string }) {
+  const words = useMemo(() => line.split(' '), [line])
   return (
     <div className="h-full flex flex-col items-center justify-center text-center px-4">
       {eyebrow && <p className="text-xs font-semibold tracking-[0.2em] uppercase mb-4" style={{ color: accentFrom }}>{eyebrow}</p>}
-      <p className="font-display italic text-3xl sm:text-4xl text-white leading-snug">{line}</p>
+      <motion.p
+        className="font-display italic text-3xl sm:text-4xl text-white leading-snug"
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.6 }}
+        transition={{ staggerChildren: 0.09, delayChildren: 0.25 }}
+      >
+        {words.map((w, i) => (
+          <motion.span key={i} variants={wordVariants} transition={{ duration: 0.5 }} className="inline-block mr-[0.28em]">
+            {w}
+          </motion.span>
+        ))}
+      </motion.p>
     </div>
   )
 }
@@ -245,12 +288,22 @@ export function CenteredCard({ children }: { children: ReactNode }) {
  * `position: sticky` across a tall span while scroll progress drives its own
  * scale/opacity/y, so it feels held in place and *earned* rather than just
  * another beat scrolling past. Reserved for one peak moment per letter. */
-function PinnedHero({ children, reduceMotion }: { children: ReactNode; reduceMotion: boolean }) {
+function PinnedHero({ children, reduceMotion, holdVh = 170 }: { children: ReactNode; reduceMotion: boolean; holdVh?: number }) {
   const ref = useRef<HTMLDivElement>(null)
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] })
   const scale = useTransform(scrollYProgress, [0, 0.4, 1], [0.86, 1, 0.86])
   const opacity = useTransform(scrollYProgress, [0, 0.12, 0.88, 1], [0, 1, 1, 0])
   const y = useTransform(scrollYProgress, [0, 0.4, 1], [40, 0, -40])
+  const chimedRef = useRef(false)
+
+  // A single soft chime the moment the peak settles into full focus — the
+  // pin+scrub earns a sound cue exactly once, not on every scroll tick.
+  useMotionValueEvent(scrollYProgress, 'change', latest => {
+    if (!chimedRef.current && latest > 0.35 && latest < 0.6) {
+      chimedRef.current = true
+      playChime()
+    }
+  })
 
   if (reduceMotion) {
     return (
@@ -261,7 +314,7 @@ function PinnedHero({ children, reduceMotion }: { children: ReactNode; reduceMot
   }
 
   return (
-    <div ref={ref} className="relative" style={{ height: '170vh' }}>
+    <div ref={ref} className="relative" style={{ height: `${holdVh}vh` }}>
       <div className="sticky top-0 h-screen flex items-center justify-center px-6 overflow-hidden">
         <motion.div style={{ scale, opacity, y }} className="w-full max-w-md h-[65vh] max-h-[560px] relative">
           {children}
@@ -274,13 +327,13 @@ function PinnedHero({ children, reduceMotion }: { children: ReactNode; reduceMot
 /** Voice notes are self-paced by their own play button, not scroll — so this is
  * a plain scroll-in beat, no pin, styled as the same paper card the rest of the
  * project uses for a voice moment. */
-function VoiceBeat({ text, speakerLabel, accentFrom, accentTo }: { text: string; speakerLabel?: string; accentFrom: string; accentTo: string }) {
+function VoiceBeat({ text, speakerLabel, accentFrom, accentTo, onPlayingChange }: { text: string; speakerLabel?: string; accentFrom: string; accentTo: string; onPlayingChange?: (playing: boolean) => void }) {
   const ref = useRef<HTMLDivElement>(null)
   const { opacity, y } = useRevealMotion(ref, false)
   return (
     <div ref={ref} className="min-h-[60vh] flex items-center justify-center px-8 py-16">
       <motion.div style={{ opacity, y }} className="w-full max-w-sm h-[420px] relative paper-grain rounded-2xl bg-[#FBF6EC] shadow-2xl overflow-hidden">
-        <VoiceNotePage text={text} speakerLabel={speakerLabel} accentFrom={accentFrom} accentTo={accentTo} />
+        <VoiceNotePage text={text} speakerLabel={speakerLabel} accentFrom={accentFrom} accentTo={accentTo} onPlayingChange={onPlayingChange} />
       </motion.div>
     </div>
   )

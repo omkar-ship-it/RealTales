@@ -7,6 +7,9 @@ interface VoiceNotePageProps {
   speakerLabel?: string
   accentFrom: string
   accentTo: string
+  /** Lets the caller duck background music while the voice note is speaking —
+   * the two competing for attention undercuts both. */
+  onPlayingChange?: (playing: boolean) => void
 }
 
 /** Pure per-index hash (no Math.random) — deterministic waveform bar heights. */
@@ -21,29 +24,36 @@ function hash(n: number): number {
  * voice-note page *feels* like (the interaction pattern), since real personal
  * voice can't be faked — that's the thing being tested here, not audio quality.
  */
-export function VoiceNotePage({ text, speakerLabel, accentFrom, accentTo }: VoiceNotePageProps) {
+export function VoiceNotePage({ text, speakerLabel, accentFrom, accentTo, onPlayingChange }: VoiceNotePageProps) {
   const [playing, setPlaying] = useState(false)
   const bars = useMemo(() => Array.from({ length: 26 }, (_, i) => 0.25 + hash(i) * 0.75), [])
 
   useEffect(() => {
     return () => {
       window.speechSynthesis?.cancel()
+      onPlayingChange?.(false)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const setPlayingState = (next: boolean) => {
+    setPlaying(next)
+    onPlayingChange?.(next)
+  }
 
   const toggle = () => {
     if (playing) {
       window.speechSynthesis.cancel()
-      setPlaying(false)
+      setPlayingState(false)
       return
     }
     if (typeof window.speechSynthesis === 'undefined') return
     const utter = new SpeechSynthesisUtterance(text)
     utter.rate = 0.95
-    utter.onend = () => setPlaying(false)
-    utter.onerror = () => setPlaying(false)
+    utter.onend = () => setPlayingState(false)
+    utter.onerror = () => setPlayingState(false)
     window.speechSynthesis.speak(utter)
-    setPlaying(true)
+    setPlayingState(true)
   }
 
   return (

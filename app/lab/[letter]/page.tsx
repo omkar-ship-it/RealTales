@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { getLabLetter, type LabLetter } from '@/lib/prototypes/letters'
 import { getMusicTrack } from '@/lib/music'
 import { LetterGate } from '@/components/reveal/LetterGate'
-import { ClosingRitual } from '@/components/reveal/ClosingRitual'
 import { EndingScreen } from '@/components/reveal/EndingScreen'
 import { AnniversaryReading } from '@/components/prototype/letters/AnniversaryReading'
 import { BirthdayReading } from '@/components/prototype/letters/BirthdayReading'
@@ -16,7 +15,7 @@ import { FriendReading } from '@/components/prototype/letters/FriendReading'
 import { TripReading } from '@/components/prototype/letters/TripReading'
 import { AppreciationReading } from '@/components/prototype/letters/AppreciationReading'
 
-type Stage = 'gate' | 'reading' | 'closing' | 'ending'
+type Stage = 'gate' | 'reading' | 'ending'
 
 export default function LabLetterPage({ params }: { params: Promise<{ letter: string }> }) {
   const { letter: routeSlug } = use(params)
@@ -43,6 +42,14 @@ export default function LabLetterPage({ params }: { params: Promise<{ letter: st
     audioRef.current?.play().catch(() => {})
     setStage('reading')
   }
+  // Ducks the background track while a voice note speaks — the two competing
+  // for attention undercuts both. Only resumes if still on the reading stage,
+  // so a voice note that's still playing when the letter completes doesn't
+  // fight the ending screen for control of the audio element.
+  const handleVoicePlayingChange = (playing: boolean) => {
+    if (playing) audioRef.current?.pause()
+    else if (stage === 'reading') audioRef.current?.play().catch(() => {})
+  }
 
   return (
     <>
@@ -59,11 +66,11 @@ export default function LabLetterPage({ params }: { params: Promise<{ letter: st
       )}
 
       {stage === 'reading' && (
-        <ReadingFor letter={letter} onComplete={() => { audioRef.current?.pause(); setStage('closing') }} />
-      )}
-
-      {stage === 'closing' && (
-        <ClosingRitual slug={slug} onContinue={() => setStage('ending')} />
+        <ReadingFor
+          letter={letter}
+          onComplete={() => { audioRef.current?.pause(); setStage('ending') }}
+          onVoicePlayingChange={handleVoicePlayingChange}
+        />
       )}
 
       {stage === 'ending' && (
@@ -78,7 +85,7 @@ export default function LabLetterPage({ params }: { params: Promise<{ letter: st
   )
 }
 
-function ReadingFor({ letter, onComplete }: { letter: LabLetter; onComplete: () => void }) {
+function ReadingFor({ letter, onComplete, onVoicePlayingChange }: { letter: LabLetter; onComplete: () => void; onVoicePlayingChange?: (playing: boolean) => void }) {
   switch (letter.slug) {
     case 'anniversary':
       return <AnniversaryReading letter={letter} onComplete={onComplete} />
@@ -97,7 +104,7 @@ function ReadingFor({ letter, onComplete }: { letter: LabLetter; onComplete: () 
     case 'trip':
       return <TripReading letter={letter} onComplete={onComplete} />
     case 'appreciation':
-      return <AppreciationReading letter={letter} onComplete={onComplete} />
+      return <AppreciationReading letter={letter} onComplete={onComplete} onVoicePlayingChange={onVoicePlayingChange} />
     default:
       return null
   }
